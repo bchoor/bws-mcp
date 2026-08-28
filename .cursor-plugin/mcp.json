@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "bws-mcp": {
+      "url": "${WORKER_URL}/mcp"
+    }
+  }
+}

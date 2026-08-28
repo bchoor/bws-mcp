@@ -1,0 +1,29 @@
+{
+  "name": "bws-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-28",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true,
+    "logs": {
+      "enabled": true,
+      "invocation_logs": false,
+      "head_sampling_rate": 0,
+    },
+  },
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "YOUR_KV_NAMESPACE_ID",
+    },
+  ],
+  "vars": {
+    "BWS_ALLOWED_PROJECTS": "prod,staging",
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": "",
+    "CF_ACCESS_TEAM_DOMAIN": "",
+    "CF_ACCESS_AUD": "",
+    "CF_ACCESS_CLIENT_ID": "",
+    "ALLOWED_EMAILS": "",
+  },
+}

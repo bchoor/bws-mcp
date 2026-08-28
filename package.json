@@ -1,0 +1,36 @@
+{
+  "name": "bws-mcp",
+  "version": "0.1.0",
+  "private": false,
+  "license": "MIT",
+  "description": "Read-only remote MCP for Bitwarden Secrets Manager on Cloudflare Workers",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint .",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "dev": "wrangler dev",
+    "cf-typegen": "wrangler types"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@cloudflare/workers-oauth-provider": "0.10.3",
+    "@modelcontextprotocol/client": "2.0.0",
+    "@modelcontextprotocol/server": "2.0.0",
+    "agents": "0.22.0",
+    "jose": "6.2.10",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250813.0",
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.48.1",
+    "vitest": "^3.2.4",
+    "wrangler": "4.34.0"
+  }
+}
