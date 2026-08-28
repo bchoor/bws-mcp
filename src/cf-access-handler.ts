@@ -1,6 +1,8 @@
 import { AuthorizationError } from "@cloudflare/workers-oauth-provider";
 import { createRemoteJWKSet, jwtVerify, type JWTVerifyGetKey } from "jose";
-import { isEmailAllowed, parseAllowedEmails } from "./emails.ts";
+import { accessOidcConfig } from "./access-oidc.ts";
+import { resolveCookieEncryptionKey } from "./cookie-key.ts";
+import { isEmailAllowed } from "./emails.ts";
 import type { Env } from "./env.ts";
 import {
   accessAuthorizeUrl,
@@ -20,42 +22,7 @@ function json(data: unknown, status: number): Response {
   });
 }
 
-export function accessOidcConfig(env: Env): {
-  teamDomain: string;
-  aud: string;
-  clientId: string;
-  clientSecret: string;
-  cookieKey: string;
-  allowedEmails: string[];
-} | null {
-  const teamDomain = env.CF_ACCESS_TEAM_DOMAIN?.trim();
-  const aud = env.CF_ACCESS_AUD?.trim();
-  const clientId = env.CF_ACCESS_CLIENT_ID?.trim();
-  const clientSecret = env.CF_ACCESS_CLIENT_SECRET?.trim();
-  const cookieKey = env.COOKIE_ENCRYPTION_KEY?.trim();
-  if (
-    teamDomain == null ||
-    teamDomain === "" ||
-    aud == null ||
-    aud === "" ||
-    clientId == null ||
-    clientId === "" ||
-    clientSecret == null ||
-    clientSecret === "" ||
-    cookieKey == null ||
-    cookieKey === ""
-  ) {
-    return null;
-  }
-  return {
-    teamDomain,
-    aud,
-    clientId,
-    clientSecret,
-    cookieKey,
-    allowedEmails: parseAllowedEmails(env.ALLOWED_EMAILS),
-  };
-}
+export { accessOidcConfig } from "./access-oidc.ts";
 
 function jwksFor(url: string): JWTVerifyGetKey {
   const existing = jwksByUrl.get(url);
@@ -117,7 +84,8 @@ export async function handleAccessRequest(
     if (client == null) {
       return json({ error: "invalid_client" }, 400);
     }
-    const { stateToken, codeChallenge } = await createOauthState(parsed, env.OAUTH_KV, config.cookieKey);
+    const cookieKey = await resolveCookieEncryptionKey(env);
+    const { stateToken, codeChallenge } = await createOauthState(parsed, env.OAUTH_KV, cookieKey);
     const location = accessAuthorizeUrl({
       authorizationUrl: `${oidcBase(config.teamDomain, config.clientId)}/authorization`,
       clientId: config.clientId,
@@ -131,7 +99,8 @@ export async function handleAccessRequest(
     let oauthReqInfo;
     let codeVerifier;
     try {
-      ({ oauthReqInfo, codeVerifier } = await consumeOauthState(request, env.OAUTH_KV, config.cookieKey));
+      const cookieKey = await resolveCookieEncryptionKey(env);
+      ({ oauthReqInfo, codeVerifier } = await consumeOauthState(request, env.OAUTH_KV, cookieKey));
     } catch (error) {
       if (error instanceof OAuthFlowError) {
         return error.toResponse();

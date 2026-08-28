@@ -43,5 +43,12 @@
     "typescript-eslint": "^8.48.1",
     "vitest": "^3.2.4",
     "wrangler": "4.34.0"
+  },
+  "cloudflare": {
+    "bindings": {
+      "BWS_ACCESS_TOKEN": {
+        "description": "Bitwarden Secrets Manager machine access token. Its SM ACL is which projects this Worker may touch. Approved humans go on `ALLOWED_EMAILS` later, not on this token."
+      }
+    }
   }
 }
