@@ -1,0 +1,24 @@
+{
+  "name": "bws-mcp",
+  "version": "0.1.0",
+  "description": "Bitwarden Secrets Manager MCP over a Cloudflare Worker URL",
+  "author": {
+    "name": "bchoor",
+    "url": "https://github.com/bchoor/bws-mcp"
+  },
+  "homepage": "https://github.com/bchoor/bws-mcp",
+  "repository": "https://github.com/bchoor/bws-mcp",
+  "license": "MIT",
+  "keywords": ["mcp", "bitwarden", "secrets", "cloudflare-workers"],
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "bws-mcp",
+    "shortDescription": "Bitwarden Secrets Manager MCP over a Cloudflare Worker URL",
+    "longDescription": "Connect Codex to a bws-mcp Cloudflare Worker. Tools list, get, create or update, and delete secrets in one allowlisted project at a time. Set the HTTP url in .mcp.json to your Worker origin plus /mcp after you deploy. There is no plugin setup field for that URL.",
+    "developerName": "bchoor",
+    "category": "Productivity",
+    "capabilities": ["Read", "Write"],
+    "websiteURL": "https://github.com/bchoor/bws-mcp",
+    "defaultPrompt": "List secret names in the prod project through bws-mcp."
+  }
+}

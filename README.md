@@ -38,15 +38,21 @@ Bots that mint tokens or credentials should live in their own SM project. Give t
 
 Create a KV namespace for this Worker and bind it as `OAUTH_KV`. Do not reuse another Worker's KV. Grants and DCR clients would share a store with whatever else lives there.
 
-## Cursor plugin
+## Plugins
 
-This repo is a Cursor plugin. Install it, then set **Worker URL** to your deployed origin (no path). The plugin points at `${WORKER_URL}/mcp`.
+This repo ships Cursor, Claude Code, and Codex plugin manifests. Version, name, homepage, and license are locked to `package.json`. See `AGENTS.md`.
+
+**Cursor.** Install the plugin from this repo, then set Worker URL to your deployed origin (no path). MCP is `${WORKER_URL}/mcp`.
+
+**Claude Code.** Add the marketplace in this repo (`.claude-plugin/marketplace.json`), install `bws-mcp`, then set Worker URL the same way.
+
+**Codex / ChatGPT Work.** `codex plugin marketplace add bchoor/bws-mcp`, then install `bws-mcp`. Point `.mcp.json` at your Worker `/mcp` URL after deploy. Codex does not document a Worker URL setup field.
 
 ## Other clients
 
-**Claude.** In Claude Desktop or claude.ai connectors, add a remote MCP URL: `https://<your-worker>/mcp`. Complete OAuth when prompted. DCR registers the client at `/register`.
+**Claude connectors.** You can still paste `https://<your-worker>/mcp` in Claude Desktop or claude.ai. DCR registers the client at `/register`.
 
-**ChatGPT.** Enable custom MCP in developer settings, paste the same `/mcp` URL, and finish the OAuth redirect.
+**ChatGPT custom MCP.** Enable custom MCP in developer settings, paste the same `/mcp` URL, and finish the OAuth redirect.
 
 **Windsurf.** Add a server in `mcp_config.json`:
 
@@ -69,8 +75,8 @@ Local skip (`ACCESS_SKIP=1` in `.dev.vars`, never in git) only works against `ht
 ```bash
 npm install
 cp .dev.vars.example .dev.vars
-npm test
-npm run lint
-npm run typecheck
+npm run ci
 npx wrangler dev
 ```
+
+Do not open a PR until `npm run ci` is green.
