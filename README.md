@@ -22,6 +22,22 @@ Auth is OAuth 2.1 with open Dynamic Client Registration at `/register`. After Cl
 
 Access for SaaS `id_token` issuer is `https://<team>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<client_id>`, not the team-domain root.
 
+## Security
+
+This Worker only lists and gets. There is no create, update, or delete.
+
+Give it a Bitwarden Secrets Manager machine account with Can read on the projects you actually want this MCP to see. In SM a project is the folder. Do not grant write. The Worker cannot enforce a finer ACL than that token. If the token can read a project, `bws_get_secret` can return any secret in it.
+
+`BWS_ALLOWED_PROJECTS` is a second gate in the Worker. Keep using it. Still put only those same projects on the token. An extra name on the token and a missing name on the var, or the reverse, is how you leak or lock yourself out.
+
+`ACCESS_SKIP` is for local `wrangler dev` on `localhost` or `127.0.0.1`. Never set it in production. The Deploy to Cloudflare button does not inject it, and should stay that way.
+
+Registration at `/register` is open, and `/authorize` auto-consents after Access login. That is convenient and also the whole risk: an allowlisted person who clicks a hostile `/authorize` link grants that client `bws_get_secret` on every allowed project. Treat the allowlist as "people who can empty the vault," not "people who can look around."
+
+Bots that mint tokens or credentials should live in their own SM project. Give this Worker a token that can read only that project so a chat client cannot pull the rest of the vault.
+
+Create a KV namespace for this Worker and bind it as `OAUTH_KV`. Do not reuse another Worker's KV. Grants and DCR clients would share a store with whatever else lives there.
+
 ## Cursor plugin
 
 This repo is a Cursor plugin. Install it, then set **Worker URL** to your deployed origin (no path). The plugin points at `${WORKER_URL}/mcp`.
