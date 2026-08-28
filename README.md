@@ -12,9 +12,15 @@ Auth is OAuth 2.1 with open Dynamic Client Registration at `/register`. After Cl
 
 The Deploy to Cloudflare form asks for one secret: `BWS_ACCESS_TOKEN`, the Bitwarden Secrets Manager machine token. `BWS_ALLOWED_PROJECTS` is already `prod,staging`. Cookie HMAC material is created on first OAuth use and stored in `OAUTH_KV`. Team domain, audience, client id, client secret, cookie key, and email allowlist are not deploy-time fields.
 
+On that form:
+
+- Leave **Build command** empty. This Worker has no build step. Cloudflare leaves the box blank because `package.json` has no `build` script. Do not add a dummy one.
+- Uncheck **Builds for non-production branches**. Production is `main` only. `preview_urls: false` in `wrangler.jsonc` turns off Worker preview URLs. It does not control this checkbox. Cloudflare turns the checkbox on. There is no wrangler or button query that defaults it off. Uncheck it here. After deploy you can also clear it under Settings, Build, Branch control.
+- Cloudflare's OAuth consent may list Email Routing (`email_routing`) scopes. That list is Wrangler's default login scopes, not a bws-mcp requirement. This Worker has no `addresses` field and no email bindings. Granting those scopes does not enable Email Routing. Declining the whole consent blocks the deploy.
+
 ## Deploy
 
-**Button.** Paste `BWS_ACCESS_TOKEN`. KV is provisioned for you. Access comes after the Worker is up.
+**Button.** Paste `BWS_ACCESS_TOKEN`. Leave the build command empty. Uncheck non-production branch builds. KV is provisioned for you. Access comes after the Worker is up.
 
 **CLI.** Create a KV namespace, put its id on `OAUTH_KV` in `wrangler.jsonc`, set `BWS_ACCESS_TOKEN` (`wrangler secret put` or `.dev.vars` locally), then `npx wrangler deploy`.
 
