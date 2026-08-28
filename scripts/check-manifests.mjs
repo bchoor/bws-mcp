@@ -25,13 +25,34 @@ function fail(message) {
   errors.push(message);
 }
 
-async function readJson(rel) {
+async function readText(rel) {
   const abs = path.join(root, rel);
   try {
-    return JSON.parse(await readFile(abs, "utf8"));
+    return await readFile(abs, "utf8");
   } catch (err) {
     fail(`${rel}: ${err instanceof Error ? err.message : String(err)}`);
     return null;
+  }
+}
+
+async function readJson(rel) {
+  const text = await readText(rel);
+  if (text === null) return null;
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    fail(`${rel}: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+}
+
+function checkLiteralVersion(rel, got, expectedVersion) {
+  if (got === null) {
+    fail(`${rel}: missing version`);
+    return;
+  }
+  if (got !== expectedVersion) {
+    fail(`${rel}: version is ${JSON.stringify(got)}, expected ${JSON.stringify(expectedVersion)}`);
   }
 }
 
@@ -106,6 +127,27 @@ const codexMcp = await readJson(".mcp.json");
 checkFields(".cursor-plugin/plugin.json", cursorPlugin, expected);
 checkFields(".claude-plugin/plugin.json", claudePlugin, expected);
 checkFields(".codex-plugin/plugin.json", codexPlugin, expected);
+
+const lock = await readJson("package-lock.json");
+if (lock) {
+  checkLiteralVersion("package-lock.json", asString(lock.version), expected.version);
+  const lockRoot = isRecord(lock.packages) ? lock.packages[""] : null;
+  if (lockRoot) {
+    checkLiteralVersion('package-lock.json packages[""]', asString(lockRoot.version), expected.version);
+  }
+}
+
+const serverTs = await readText("src/server.ts");
+if (serverTs !== null) {
+  const match = serverTs.match(
+    /new McpServer\(\{\s*name:\s*"bws-mcp",\s*version:\s*"([^"]+)"/,
+  );
+  if (!match) {
+    fail('src/server.ts: missing McpServer({ name: "bws-mcp", version: "..." })');
+  } else {
+    checkLiteralVersion("src/server.ts MCP version", match[1], expected.version);
+  }
+}
 
 if (claudeMarket) {
   if (asString(claudeMarket.version) !== expected.version) {

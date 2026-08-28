@@ -6,18 +6,20 @@ Do not put house hosts, house emails, KV ids, Access ids, or tokens in this repo
 
 ## Version
 
-`package.json` `version` is the only source of truth. Cursor, Claude, and Codex `plugin.json` files, plus `.claude-plugin/marketplace.json`, must use that same version, name, homepage, and license. After you bump `package.json`, copy the version into:
+`package.json` `version` is the only source of truth. Cursor, Claude, and Codex `plugin.json` files, plus `.claude-plugin/marketplace.json`, `src/server.ts` MCP `version`, and `package-lock.json` root version, must match it. Plugin name, homepage, and license must match `package.json` too. After you bump `package.json`, copy the version into:
 
 - `.cursor-plugin/plugin.json`
 - `.claude-plugin/plugin.json`
 - `.claude-plugin/marketplace.json` (top-level and the plugin entry)
 - `.codex-plugin/plugin.json`
+- `src/server.ts` (`McpServer` `version`)
+- `package-lock.json` (run `npm install` so the lockfile root version updates)
 
 Then run `npm run ci`. Do not open or push a PR until that command is green.
 
 ## CI
 
-`npm run ci` runs lint, typecheck, tests, and `scripts/check-manifests.mjs`. That script fails on version or name/homepage/license drift, a missing or malformed marketplace entry, or SchemaStore validation failure for the Claude plugin, Claude marketplace, and Codex plugin manifests. GitHub Actions on push and pull_request runs the same `npm run ci`. A husky pre-push hook runs it locally so a red tree does not reach the remote.
+`npm run ci` runs lint, typecheck, tests, and `scripts/check-manifests.mjs`. That script fails on version or name/homepage/license drift (plugin.json files, Claude marketplace, `src/server.ts` MCP version, lockfile root version), a missing or malformed marketplace entry, or SchemaStore validation failure for the Claude plugin, Claude marketplace, and Codex plugin manifests. GitHub Actions on push and pull_request runs the same `npm run ci`. A husky pre-push hook runs it locally so a red tree does not reach the remote.
 
 ## Plugins and marketplaces
 
