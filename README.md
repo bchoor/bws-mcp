@@ -10,15 +10,32 @@ Auth is OAuth 2.1 with open Dynamic Client Registration at `/register`. After Cl
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bchoor/bws-mcp)
 
+The Deploy to Cloudflare form asks for one secret: `BWS_ACCESS_TOKEN`, the Bitwarden Secrets Manager machine token. `BWS_ALLOWED_PROJECTS` is already `prod,staging`. Cookie HMAC material is created on first OAuth use and stored in `OAUTH_KV`. Team domain, audience, client id, client secret, cookie key, and email allowlist are not deploy-time fields.
+
 ## Deploy
 
-1. Create a KV namespace and put its id in `wrangler.jsonc` (`OAUTH_KV`).
-2. Set vars (placeholders in `wrangler.jsonc`):
-   - `BWS_ALLOWED_PROJECTS` (`prod,staging` in the sample)
-   - Cloudflare Access team domain and audience for machine JWTs (`ACCESS_TEAM_DOMAIN`, `ACCESS_AUD`)
-   - Access for SaaS OIDC (`CF_ACCESS_TEAM_DOMAIN`, `CF_ACCESS_AUD`, `CF_ACCESS_CLIENT_ID`, `ALLOWED_EMAILS`)
-3. Set secrets (see `.dev.vars.example`, all empty): `BWS_ACCESS_TOKEN`, `CF_ACCESS_CLIENT_SECRET`, `COOKIE_ENCRYPTION_KEY`.
-4. `npx wrangler deploy`
+**Button.** Paste `BWS_ACCESS_TOKEN`. KV is provisioned for you. Access comes after the Worker is up.
+
+**CLI.** Create a KV namespace, put its id on `OAUTH_KV` in `wrangler.jsonc`, set `BWS_ACCESS_TOKEN` (`wrangler secret put` or `.dev.vars` locally), then `npx wrangler deploy`.
+
+### Cloudflare Access (second step)
+
+The Worker deploys without Access. `/authorize` returns 503 until you finish this.
+
+Machine JWTs on `Cf-Access-Jwt-Assertion`:
+
+- `ACCESS_TEAM_DOMAIN`
+- `ACCESS_AUD`
+
+Access for SaaS OIDC (MCP OAuth after a human logs in):
+
+- `CF_ACCESS_TEAM_DOMAIN`
+- `CF_ACCESS_AUD`
+- `CF_ACCESS_CLIENT_ID`
+- `ALLOWED_EMAILS`
+- secret `CF_ACCESS_CLIENT_SECRET`
+
+Set those in the dashboard or with wrangler after the first deploy. `COOKIE_ENCRYPTION_KEY` is optional. If you skip it, the Worker writes a random key to `OAUTH_KV` and reuses it.
 
 Access for SaaS `id_token` issuer is `https://<team>.cloudflareaccess.com/cdn-cgi/access/sso/oidc/<client_id>`, not the team-domain root.
 
@@ -97,6 +114,7 @@ Local skip (`ACCESS_SKIP=1` in `.dev.vars`, never in git) only works against `ht
 ```bash
 npm install
 cp .dev.vars.example .dev.vars
+# Fill BWS_ACCESS_TOKEN. Access vars and CF_ACCESS_CLIENT_SECRET are optional until you test OIDC.
 npm run ci
 npx wrangler dev
 ```

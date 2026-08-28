@@ -1,9 +1,8 @@
-# Copy to .dev.vars. Values stay empty until you fill them locally.
-# Never commit .dev.vars.
+# Deploy to Cloudflare treats uncommented KEY= lines as required secrets.
+# First-timer: paste only BWS_ACCESS_TOKEN.
 
 BWS_ACCESS_TOKEN=
-CF_ACCESS_CLIENT_SECRET=
-COOKIE_ENCRYPTION_KEY=
 
-# ACCESS_SKIP is local-only (localhost / 127.0.0.1). Do not set this in production.
-# ACCESS_SKIP=
+# Access for SaaS is a later step: wrangler secret put CF_ACCESS_CLIENT_SECRET
+# COOKIE_ENCRYPTION_KEY is generated into OAUTH_KV when missing.
+# ACCESS_SKIP is local-only (localhost / 127.0.0.1). Do not set it in production.

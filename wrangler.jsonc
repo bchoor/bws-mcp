@@ -18,13 +18,8 @@
       "id": "YOUR_KV_NAMESPACE_ID",
     },
   ],
+  // Do not put empty Access vars here. The Deploy to Cloudflare form treats them as required.
   "vars": {
     "BWS_ALLOWED_PROJECTS": "prod,staging",
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": "",
-    "CF_ACCESS_TEAM_DOMAIN": "",
-    "CF_ACCESS_AUD": "",
-    "CF_ACCESS_CLIENT_ID": "",
-    "ALLOWED_EMAILS": "",
   },
 }
