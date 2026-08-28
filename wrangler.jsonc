@@ -1,6 +1,7 @@
 {
   "name": "bws-mcp",
   "main": "src/index.ts",
+  "preview_urls": false,
   "compatibility_date": "2026-08-28",
   "compatibility_flags": ["nodejs_compat"],
   "observability": {
