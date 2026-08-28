@@ -24,11 +24,17 @@ Access for SaaS `id_token` issuer is `https://<team>.cloudflareaccess.com/cdn-cg
 
 ## Security
 
-This Worker lists, gets, creates, updates, and deletes secrets in every project on its allowlist. An allowlisted OAuth client that finishes `/authorize` can rotate and delete those secrets. Treat the email allowlist as people who can empty and rewrite the vault, not people who can look around.
+This Worker lists, gets, creates, updates, and deletes secrets in every project on its allowlist. An OAuth client that finishes `/authorize` for an approved human can rotate and delete those secrets. Treat that as vault rewrite access, not look-around access.
 
-Give it a Bitwarden Secrets Manager machine account with Can write (and delete) on only the projects you want this MCP to touch. In SM a project is the folder. The Worker cannot enforce a finer ACL than that token. If the token can write a project, `bws_put_secret` and `bws_delete_secret` can change any secret in it. Skip write on the token only if you intend this deploy to fail writes.
+Two walls. Do not collapse them into one secret.
 
-`BWS_ALLOWED_PROJECTS` is a second gate in the Worker. Keep using it. Still put only those same projects on the token. An extra name on the token and a missing name on the var, or the reverse, is how you leak or lock yourself out.
+- The BWS access token is a machine account, not a user. Its SM ACL is only which projects that machine can touch.
+- Approved humans belong on the Worker email allowlist (`ALLOWED_EMAILS`) only. Do not keep a second people list next to the token in Secrets Manager. SM is not a people list.
+- Token = machine project ACL. Humans = `ALLOWED_EMAILS`. Not one secret that does both.
+
+Give the machine account Can write (and delete) on only the projects this MCP should touch. In SM a project is the folder. The Worker cannot enforce a finer ACL than that token. If the token can write a project, `bws_put_secret` and `bws_delete_secret` can change any secret in it. Skip write on the token only if you intend this deploy to fail writes.
+
+`BWS_ALLOWED_PROJECTS` is a Worker project-name gate, not a people list. Keep using it. Put only those same projects on the token. An extra name on the token and a missing name on the var, or the reverse, is how you leak or lock yourself out.
 
 `ACCESS_SKIP` is for local `wrangler dev` on `localhost` or `127.0.0.1`. Never set it in production. The Deploy to Cloudflare button does not inject it, and should stay that way.
 
