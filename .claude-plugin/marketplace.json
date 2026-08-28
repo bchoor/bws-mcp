@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "bws-mcp",
+  "version": "0.1.0",
+  "description": "Bitwarden Secrets Manager MCP over a Cloudflare Worker URL",
+  "owner": {
+    "name": "bchoor",
+    "url": "https://github.com/bchoor/bws-mcp"
+  },
+  "plugins": [
+    {
+      "name": "bws-mcp",
+      "source": "./",
+      "version": "0.1.0",
+      "description": "Bitwarden Secrets Manager MCP over a Cloudflare Worker URL",
+      "homepage": "https://github.com/bchoor/bws-mcp",
+      "repository": "https://github.com/bchoor/bws-mcp",
+      "license": "MIT",
+      "keywords": ["mcp", "bitwarden", "secrets", "cloudflare-workers"]
+    }
+  ]
+}

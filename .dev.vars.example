@@ -1,0 +1,9 @@
+# Copy to .dev.vars. Values stay empty until you fill them locally.
+# Never commit .dev.vars.
+
+BWS_ACCESS_TOKEN=
+CF_ACCESS_CLIENT_SECRET=
+COOKIE_ENCRYPTION_KEY=
+
+# ACCESS_SKIP is local-only (localhost / 127.0.0.1). Do not set this in production.
+# ACCESS_SKIP=

@@ -1,0 +1,21 @@
+{
+  "name": "bws-mcp",
+  "version": "0.1.0",
+  "description": "Bitwarden Secrets Manager MCP over a Cloudflare Worker URL",
+  "license": "MIT",
+  "homepage": "https://github.com/bchoor/bws-mcp",
+  "repository": "https://github.com/bchoor/bws-mcp",
+  "keywords": ["mcp", "bitwarden", "secrets", "cloudflare-workers"],
+  "mcpServers": "./mcp.json",
+  "variables": {
+    "type": "object",
+    "properties": {
+      "WORKER_URL": {
+        "type": "string",
+        "title": "Worker URL",
+        "description": "Origin of your deployed bws-mcp Worker, with no path. Example: https://bws-mcp.<account>.workers.dev"
+      }
+    },
+    "required": ["WORKER_URL"]
+  }
+}

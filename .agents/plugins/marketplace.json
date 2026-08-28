@@ -1,0 +1,20 @@
+{
+  "name": "bws-mcp",
+  "interface": {
+    "displayName": "bws-mcp"
+  },
+  "plugins": [
+    {
+      "name": "bws-mcp",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
