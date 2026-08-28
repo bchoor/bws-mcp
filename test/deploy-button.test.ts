@@ -47,5 +47,14 @@ describe("Deploy to Cloudflare first-timer form", () => {
     expect(keys).not.toContain("COOKIE_ENCRYPTION_KEY");
     expect(keys).not.toContain("CF_ACCESS_CLIENT_SECRET");
     expect(keys).not.toContain("BWS_ACCESS_TOKEN");
+    expect(wrangler).toMatch(/"preview_urls"\s*:\s*false/);
+    expect(wrangler).not.toMatch(/"addresses"\s*:/);
+  });
+
+  it("has no package.json build script, so the form build command stays empty", async () => {
+    const pkg = JSON.parse(await readFile(path.join(root, "package.json"), "utf8")) as {
+      scripts?: Record<string, string>;
+    };
+    expect(pkg.scripts?.build).toBeUndefined();
   });
 });
