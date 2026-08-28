@@ -38,9 +38,25 @@ Bots that mint tokens or credentials should live in their own SM project. Give t
 
 Create a KV namespace for this Worker and bind it as `OAUTH_KV`. Do not reuse another Worker's KV. Grants and DCR clients would share a store with whatever else lives there.
 
-## Plugins
+## Versions and marketplaces
 
-This repo ships Cursor, Claude Code, and Codex plugin manifests. Version, name, homepage, and license are locked to `package.json`. See `AGENTS.md`.
+`package.json` `version` is the source of truth. These must match it:
+
+- Cursor `.cursor-plugin/plugin.json`
+- Claude `.claude-plugin/plugin.json`
+- Codex `.codex-plugin/plugin.json`
+- Claude `.claude-plugin/marketplace.json` (top-level `version` and the plugin entry `version`)
+- `src/server.ts` MCP `version` on `new McpServer({ name: "bws-mcp", version: "..." })`
+
+Marketplaces live here:
+
+- Cursor: `.cursor-plugin`
+- Claude: `.claude-plugin`
+- Codex: `.codex-plugin`, plus the repo marketplace at `.agents/plugins`
+
+`npm run ci` runs `scripts/check-manifests.mjs`. That fails the PR if any of the versions above drift, or if an official plugin or marketplace schema shape is wrong. Name, homepage, and license on the plugin manifests must match `package.json` too.
+
+## Plugins
 
 **Cursor.** Install the plugin from this repo, then set Worker URL to your deployed origin (no path). MCP is `${WORKER_URL}/mcp`.
 
