@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": false,
   "license": "MIT",
-  "description": "Read-only remote MCP for Bitwarden Secrets Manager on Cloudflare Workers",
+  "description": "Remote MCP for Bitwarden Secrets Manager on Cloudflare Workers",
   "type": "module",
   "scripts": {
     "lint": "eslint .",

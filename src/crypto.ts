@@ -34,6 +34,14 @@ export function base64ToBytes(value: string): Uint8Array {
   return bytes;
 }
 
+function bytesToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  for (const byte of bytes) {
+    binary += String.fromCharCode(byte);
+  }
+  return btoa(binary);
+}
+
 async function hmacSha256(keyBytes: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -144,6 +152,20 @@ async function decryptType2(value: string, compositeKey: Uint8Array): Promise<Ui
   const cryptoKey = await crypto.subtle.importKey("raw", encKey, { name: "AES-CBC" }, false, ["decrypt"]);
   const plain = await crypto.subtle.decrypt({ name: "AES-CBC", iv: parsed.iv }, cryptoKey, parsed.data);
   return new Uint8Array(plain);
+}
+
+export async function encryptUtf8(plain: string, compositeKey: Uint8Array): Promise<string> {
+  const { encKey, macKey } = splitCompositeKey(compositeKey);
+  const iv = crypto.getRandomValues(new Uint8Array(16));
+  const cryptoKey = await crypto.subtle.importKey("raw", encKey, { name: "AES-CBC" }, false, ["encrypt"]);
+  const data = new Uint8Array(
+    await crypto.subtle.encrypt({ name: "AES-CBC", iv }, cryptoKey, new TextEncoder().encode(plain)),
+  );
+  const macData = new Uint8Array(iv.length + data.length);
+  macData.set(iv, 0);
+  macData.set(data, iv.length);
+  const mac = new Uint8Array(await hmacSha256(macKey, macData));
+  return `2.${bytesToBase64(iv)}|${bytesToBase64(data)}|${bytesToBase64(mac)}`;
 }
 
 export async function decryptUtf8(encString: string, compositeKey: Uint8Array): Promise<string> {

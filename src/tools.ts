@@ -1,4 +1,4 @@
-import type { BwsClient, SecretSummary, SecretValue } from "./bws.ts";
+import type { BwsClient, SecretDeleteResult, SecretSummary, SecretValue, SecretWriteResult } from "./bws.ts";
 import { BwsError, requireAllowedProject } from "./projects.ts";
 
 export type ToolOk<T> = { ok: true; data: T };
@@ -34,6 +34,39 @@ export async function getSecretTool(
   try {
     const project = requireAllowedProject(args.project, allowed);
     const secret = await client.getSecret({ name: args.name, project });
+    return { ok: true, data: secret };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function putSecretTool(
+  client: BwsClient,
+  args: { name: string; value: string; project: string | undefined; note?: string },
+  allowed: string[],
+): Promise<ToolResult<SecretWriteResult>> {
+  try {
+    const project = requireAllowedProject(args.project, allowed);
+    const secret = await client.putSecret({
+      name: args.name,
+      value: args.value,
+      project,
+      ...(args.note === undefined ? {} : { note: args.note }),
+    });
+    return { ok: true, data: secret };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function deleteSecretTool(
+  client: BwsClient,
+  args: { name: string; project: string | undefined },
+  allowed: string[],
+): Promise<ToolResult<SecretDeleteResult>> {
+  try {
+    const project = requireAllowedProject(args.project, allowed);
+    const secret = await client.deleteSecret({ name: args.name, project });
     return { ok: true, data: secret };
   } catch (error) {
     return fail(error);

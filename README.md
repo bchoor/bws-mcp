@@ -1,8 +1,8 @@
 # bws-mcp
 
-Read-only remote MCP for Bitwarden Secrets Manager, running as a Cloudflare Worker.
+Remote MCP for Bitwarden Secrets Manager, running as a Cloudflare Worker.
 
-Two tools: `bws_list_secrets` and `bws_get_secret`. Both require `project`. Allowed project names come from the `BWS_ALLOWED_PROJECTS` Worker var (comma list). Docs and tests use `prod` and `staging`.
+Tools: `bws_list_secrets`, `bws_get_secret`, `bws_put_secret` (create or update), and `bws_delete_secret`. Every tool requires `project`. The Worker never searches across projects. Allowed project names come from the `BWS_ALLOWED_PROJECTS` Worker var (comma list). Docs and tests use `prod` and `staging`.
 
 Auth is OAuth 2.1 with open Dynamic Client Registration at `/register`. After Cloudflare Access login, the Worker completes the MCP grant without a second consent screen. If the request already carries a Cloudflare Access JWT (`Cf-Access-Jwt-Assertion`), the Worker verifies it itself and skips the MCP OAuth dance.
 
@@ -24,17 +24,17 @@ Access for SaaS `id_token` issuer is `https://<team>.cloudflareaccess.com/cdn-cg
 
 ## Security
 
-This Worker only lists and gets. There is no create, update, or delete.
+This Worker lists, gets, creates, updates, and deletes secrets in every project on its allowlist. An allowlisted OAuth client that finishes `/authorize` can rotate and delete those secrets. Treat the email allowlist as people who can empty and rewrite the vault, not people who can look around.
 
-Give it a Bitwarden Secrets Manager machine account with Can read on the projects you actually want this MCP to see. In SM a project is the folder. Do not grant write. The Worker cannot enforce a finer ACL than that token. If the token can read a project, `bws_get_secret` can return any secret in it.
+Give it a Bitwarden Secrets Manager machine account with Can write (and delete) on only the projects you want this MCP to touch. In SM a project is the folder. The Worker cannot enforce a finer ACL than that token. If the token can write a project, `bws_put_secret` and `bws_delete_secret` can change any secret in it. Skip write on the token only if you intend this deploy to fail writes.
 
 `BWS_ALLOWED_PROJECTS` is a second gate in the Worker. Keep using it. Still put only those same projects on the token. An extra name on the token and a missing name on the var, or the reverse, is how you leak or lock yourself out.
 
 `ACCESS_SKIP` is for local `wrangler dev` on `localhost` or `127.0.0.1`. Never set it in production. The Deploy to Cloudflare button does not inject it, and should stay that way.
 
-Registration at `/register` is open, and `/authorize` auto-consents after Access login. That is convenient and also the whole risk: an allowlisted person who clicks a hostile `/authorize` link grants that client `bws_get_secret` on every allowed project. Treat the allowlist as "people who can empty the vault," not "people who can look around."
+Registration at `/register` is open, and `/authorize` auto-consents after Access login. An allowlisted person who clicks a hostile `/authorize` link grants that client create, rotate, and delete on every allowed project.
 
-Bots that mint tokens or credentials should live in their own SM project. Give this Worker a token that can read only that project so a chat client cannot pull the rest of the vault.
+Bots that mint tokens or credentials should live in their own SM project. Give this Worker a token that can read and write only that project so a chat client cannot pull or rewrite the rest of the vault.
 
 Create a KV namespace for this Worker and bind it as `OAUTH_KV`. Do not reuse another Worker's KV. Grants and DCR clients would share a store with whatever else lives there.
 

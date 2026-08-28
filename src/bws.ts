@@ -1,4 +1,4 @@
-import { decryptMaybeUtf8, decryptUtf8, parseAccessToken } from "./crypto.ts";
+import { decryptMaybeUtf8, decryptUtf8, encryptUtf8, parseAccessToken } from "./crypto.ts";
 import type { Env } from "./env.ts";
 import { BwsError, parseAllowedProjects, requireAllowedProject } from "./projects.ts";
 
@@ -15,9 +15,19 @@ export interface SecretValue extends SecretSummary {
   value: string;
 }
 
+export interface SecretWriteResult extends SecretSummary {
+  action: "created" | "updated";
+}
+
+export interface SecretDeleteResult extends SecretSummary {
+  deleted: true;
+}
+
 export interface BwsClient {
   listSecrets(project: string): Promise<SecretSummary[]>;
   getSecret(args: { name: string; project: string }): Promise<SecretValue>;
+  putSecret(args: { name: string; value: string; project: string; note?: string }): Promise<SecretWriteResult>;
+  deleteSecret(args: { name: string; project: string }): Promise<SecretDeleteResult>;
 }
 
 function jsonError(status: number): BwsError {
@@ -186,6 +196,21 @@ export function createHttpBwsClient(env: Env, fetchImpl: typeof fetch = fetch): 
     return readJson(response);
   }
 
+  async function apiJson(method: string, path: string, bearer: string, body: unknown): Promise<unknown> {
+    const response = await fetchImpl(`${apiUrl}${path}`, {
+      method,
+      headers: {
+        authorization: `Bearer ${bearer}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify(body),
+    });
+    if (!response.ok) {
+      throw jsonError(response.status);
+    }
+    return readJson(response);
+  }
+
   async function resolveProject(
     projectName: string,
     current: Awaited<ReturnType<typeof session>>,
@@ -254,6 +279,68 @@ export function createHttpBwsClient(env: Env, fetchImpl: typeof fetch = fetch): 
       }
       const value = await decryptUtf8(rawValue, current.orgKey);
       return { id: match.id, name: match.name, project: match.project, value };
+    },
+    async putSecret(args) {
+      const projectName = requireAllowedProject(args.project, allowed);
+      const current = await session();
+      const project = await resolveProject(projectName, current);
+      const listed = await listInProject(project.name, current);
+      const match = listed.find((secret) => secret.name === args.name);
+      const key = await encryptUtf8(args.name, current.orgKey);
+      const value = await encryptUtf8(args.value, current.orgKey);
+      let notePlain = args.note ?? "";
+      if (match != null && args.note === undefined) {
+        const existing = asRecord(await apiGet(`/secrets/${match.id}`, current.bearer));
+        const rawNote = existing == null ? null : stringField(existing, "note");
+        if (rawNote != null) {
+          notePlain = await decryptMaybeUtf8(rawNote, current.orgKey);
+        }
+      }
+      const note = await encryptUtf8(notePlain, current.orgKey);
+      if (match == null) {
+        const created = asRecord(
+          await apiJson("POST", `/organizations/${current.organizationId}/secrets`, current.bearer, {
+            key,
+            value,
+            note,
+            projectIds: [project.id],
+          }),
+        );
+        const id = created == null ? null : stringField(created, "id");
+        if (id == null) {
+          throw new BwsError("BWS secret response was invalid", 502);
+        }
+        return { id, name: args.name, project: project.name, action: "created" };
+      }
+      await apiJson("PUT", `/secrets/${match.id}`, current.bearer, {
+        key,
+        value,
+        note,
+        projectIds: [project.id],
+        valueChanged: true,
+      });
+      return { id: match.id, name: args.name, project: project.name, action: "updated" };
+    },
+    async deleteSecret(args) {
+      const project = requireAllowedProject(args.project, allowed);
+      const current = await session();
+      const listed = await listInProject(project, current);
+      const match = listed.find((secret) => secret.name === args.name);
+      if (match == null) {
+        throw new BwsError("Secret not found", 404);
+      }
+      const deleted = await apiJson("POST", "/secrets/delete", current.bearer, [match.id]);
+      for (const item of asList(deleted)) {
+        const record = asRecord(item);
+        if (record == null) {
+          continue;
+        }
+        const error = stringField(record, "error");
+        if (error != null) {
+          throw new BwsError(`BWS request failed (${error})`, 502);
+        }
+      }
+      return { id: match.id, name: match.name, project: match.project, deleted: true };
     },
   };
 }
