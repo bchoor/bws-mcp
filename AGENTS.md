@@ -4,6 +4,8 @@ Cloudflare Worker that exposes Bitwarden Secrets Manager as remote MCP. Tools: `
 
 Do not put house hosts, house emails, KV ids, Access ids, or tokens in this repo. Deploy secrets stay in Wrangler secrets and `.dev.vars` (gitignored). Copy `.dev.vars.example`. Leave values empty in git.
 
+- `wrangler.jsonc` `vars` is the single source of truth for Worker env config (placeholders such as the KV namespace id stay in git; real ids and secrets do not).
+
 ## Version
 
 `package.json` `version` is the only source of truth. Cursor, Claude, and Codex `plugin.json` files, plus `.claude-plugin/marketplace.json`, `src/server.ts` MCP `version`, and `package-lock.json` root version, must match it. Plugin name, homepage, and license must match `package.json` too. After you bump `package.json`, copy the version into:
