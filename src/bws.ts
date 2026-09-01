@@ -1,9 +1,20 @@
 import { decryptMaybeUtf8, decryptUtf8, encryptUtf8, parseAccessToken } from "./crypto.ts";
 import type { Env } from "./env.ts";
-import { BwsError, parseAllowedProjects, requireAllowedProject } from "./projects.ts";
+import {
+  BwsError,
+  filterAllowedProjects,
+  parseAllowedProjects,
+  requireAllowedProject,
+  requireConfiguredProjects,
+} from "./projects.ts";
 
 const DEFAULT_IDENTITY_URL = "https://identity.bitwarden.com";
 const DEFAULT_API_URL = "https://api.bitwarden.com";
+
+export interface BwsProject {
+  id: string;
+  name: string;
+}
 
 export interface SecretSummary {
   id: string;
@@ -24,6 +35,7 @@ export interface SecretDeleteResult extends SecretSummary {
 }
 
 export interface BwsClient {
+  listProjects(): Promise<BwsProject[]>;
   listSecrets(project: string): Promise<SecretSummary[]>;
   getSecret(args: { name: string; project: string }): Promise<SecretValue>;
   putSecret(args: { name: string; value: string; project: string; note?: string }): Promise<SecretWriteResult>;
@@ -211,12 +223,11 @@ export function createHttpBwsClient(env: Env, fetchImpl: typeof fetch = fetch): 
     return readJson(response);
   }
 
-  async function resolveProject(
-    projectName: string,
+  async function fetchOrganizationProjects(
     current: Awaited<ReturnType<typeof session>>,
-  ): Promise<{ id: string; name: string }> {
-    requireAllowedProject(projectName, allowed);
+  ): Promise<BwsProject[]> {
     const body = await apiGet(`/organizations/${current.organizationId}/projects`, current.bearer);
+    const projects: BwsProject[] = [];
     for (const item of asList(body)) {
       const record = asRecord(item);
       if (record == null) {
@@ -228,11 +239,21 @@ export function createHttpBwsClient(env: Env, fetchImpl: typeof fetch = fetch): 
         continue;
       }
       const name = await decryptMaybeUtf8(rawName, current.orgKey);
-      if (name === projectName) {
-        return { id, name };
-      }
+      projects.push({ id, name });
     }
-    throw new BwsError(`Project not found: ${projectName}`, 404);
+    return projects;
+  }
+
+  async function resolveProject(
+    projectName: string,
+    current: Awaited<ReturnType<typeof session>>,
+  ): Promise<BwsProject> {
+    requireAllowedProject(projectName, allowed);
+    const match = (await fetchOrganizationProjects(current)).find((project) => project.name === projectName);
+    if (match == null) {
+      throw new BwsError(`Project not found: ${projectName}`, 404);
+    }
+    return match;
   }
 
   async function listInProject(
@@ -259,6 +280,11 @@ export function createHttpBwsClient(env: Env, fetchImpl: typeof fetch = fetch): 
   }
 
   return {
+    async listProjects() {
+      requireConfiguredProjects(allowed);
+      const current = await session();
+      return filterAllowedProjects(await fetchOrganizationProjects(current), allowed);
+    },
     async listSecrets(project) {
       const known = requireAllowedProject(project, allowed);
       const current = await session();

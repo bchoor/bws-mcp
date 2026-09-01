@@ -20,6 +20,6 @@
   ],
   // Do not put empty Access vars here. The Deploy to Cloudflare form treats them as required.
   "vars": {
-    "BWS_ALLOWED_PROJECTS": "prod,staging",
+    "BWS_ALLOWED_PROJECTS": "*", // `*` = every project the machine token can see. Comma list = only those names. Empty is invalid.
   },
 }

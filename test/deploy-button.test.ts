@@ -32,9 +32,9 @@ describe("Deploy to Cloudflare first-timer form", () => {
     expect(example).not.toMatch(/^ACCESS_SKIP=/m);
   });
 
-  it("ships BWS_ALLOWED_PROJECTS as prod,staging and omits empty Access vars", async () => {
+  it("ships BWS_ALLOWED_PROJECTS as * and omits empty Access vars", async () => {
     const wrangler = await readFile(path.join(root, "wrangler.jsonc"), "utf8");
-    expect(wrangler).toMatch(/"BWS_ALLOWED_PROJECTS"\s*:\s*"prod,staging"/);
+    expect(wrangler).toMatch(/"BWS_ALLOWED_PROJECTS"\s*:\s*"\*"/);
     const keys = quotedKeys(wrangler);
     expect(keys).toContain("BWS_ALLOWED_PROJECTS");
     expect(keys).not.toContain("ACCESS_SKIP");

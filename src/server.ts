@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import type { BwsClient } from "./bws.ts";
-import { deleteSecretTool, getSecretTool, listSecretsTool, putSecretTool } from "./tools.ts";
+import type { AllowedProjects } from "./projects.ts";
+import { deleteSecretTool, getSecretTool, listProjectsTool, listSecretsTool, putSecretTool } from "./tools.ts";
 
 function toolText(data: unknown) {
   return {
@@ -17,11 +18,25 @@ function toolError(message: string) {
   };
 }
 
-export function createBwsMcpServer(client: BwsClient, allowedProjects: string[]): McpServer {
+export function createBwsMcpServer(client: BwsClient, allowedProjects: AllowedProjects): McpServer {
   const server = new McpServer({
     name: "bws-mcp",
     version: "0.1.0",
   });
+  server.registerTool(
+    "bws_list_projects",
+    {
+      description:
+        "List Bitwarden Secrets Manager projects this Worker may use. With BWS_ALLOWED_PROJECTS=*, returns every project the machine token can see. With a comma list, returns only those names.",
+    },
+    async () => {
+      const result = await listProjectsTool(client, allowedProjects);
+      if (!result.ok) {
+        return toolError(result.message);
+      }
+      return toolText(result.data);
+    },
+  );
   server.registerTool(
     "bws_list_secrets",
     {
