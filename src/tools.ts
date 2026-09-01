@@ -1,5 +1,6 @@
-import type { BwsClient, SecretDeleteResult, SecretSummary, SecretValue, SecretWriteResult } from "./bws.ts";
-import { BwsError, requireAllowedProject } from "./projects.ts";
+import type { BwsClient, BwsProject, SecretDeleteResult, SecretSummary, SecretValue, SecretWriteResult } from "./bws.ts";
+import type { AllowedProjects } from "./projects.ts";
+import { BwsError, filterAllowedProjects, requireAllowedProject, requireConfiguredProjects } from "./projects.ts";
 
 export type ToolOk<T> = { ok: true; data: T };
 export type ToolFail = { ok: false; message: string };
@@ -12,10 +13,23 @@ function fail(error: unknown): ToolFail {
   return { ok: false, message: "BWS request failed" };
 }
 
+export async function listProjectsTool(
+  client: BwsClient,
+  allowed: AllowedProjects,
+): Promise<ToolResult<{ projects: BwsProject[] }>> {
+  try {
+    requireConfiguredProjects(allowed);
+    const projects = filterAllowedProjects(await client.listProjects(), allowed);
+    return { ok: true, data: { projects } };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
 export async function listSecretsTool(
   client: BwsClient,
   project: string | undefined,
-  allowed: string[],
+  allowed: AllowedProjects,
 ): Promise<ToolResult<{ project: string; secrets: SecretSummary[] }>> {
   try {
     const known = requireAllowedProject(project, allowed);
@@ -29,7 +43,7 @@ export async function listSecretsTool(
 export async function getSecretTool(
   client: BwsClient,
   args: { name: string; project: string | undefined },
-  allowed: string[],
+  allowed: AllowedProjects,
 ): Promise<ToolResult<SecretValue>> {
   try {
     const project = requireAllowedProject(args.project, allowed);
@@ -43,7 +57,7 @@ export async function getSecretTool(
 export async function putSecretTool(
   client: BwsClient,
   args: { name: string; value: string; project: string | undefined; note?: string },
-  allowed: string[],
+  allowed: AllowedProjects,
 ): Promise<ToolResult<SecretWriteResult>> {
   try {
     const project = requireAllowedProject(args.project, allowed);
@@ -62,7 +76,7 @@ export async function putSecretTool(
 export async function deleteSecretTool(
   client: BwsClient,
   args: { name: string; project: string | undefined },
-  allowed: string[],
+  allowed: AllowedProjects,
 ): Promise<ToolResult<SecretDeleteResult>> {
   try {
     const project = requireAllowedProject(args.project, allowed);

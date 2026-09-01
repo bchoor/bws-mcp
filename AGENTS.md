@@ -1,6 +1,6 @@
 # bws-mcp
 
-Cloudflare Worker that exposes Bitwarden Secrets Manager as remote MCP. Tools: `bws_list_secrets`, `bws_get_secret`, `bws_put_secret` (create or update), `bws_delete_secret`. Every tool requires `project`. The Worker never walks other projects. `BWS_ALLOWED_PROJECTS` is the comma allowlist. Docs and tests use `prod` and `staging`.
+Cloudflare Worker that exposes Bitwarden Secrets Manager as remote MCP. Tools: `bws_list_projects`, `bws_list_secrets`, `bws_get_secret`, `bws_put_secret` (create or update), `bws_delete_secret`. Secret tools require `project` (BWS project name). `BWS_ALLOWED_PROJECTS` is `*` (every project the machine token can see) or a comma list of names. Empty is not configured. Docs and tests use `prod` and `staging` for the list form.
 
 Do not put house hosts, house emails, KV ids, Access ids, or tokens in this repo. Deploy secrets stay in Wrangler secrets and `.dev.vars` (gitignored). Copy `.dev.vars.example`. Leave values empty in git.
 

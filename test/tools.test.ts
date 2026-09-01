@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { BwsClient, SecretDeleteResult, SecretValue, SecretWriteResult } from "../src/bws.ts";
+import type { BwsClient, BwsProject, SecretDeleteResult, SecretValue, SecretWriteResult } from "../src/bws.ts";
 import { BwsError, parseAllowedProjects } from "../src/projects.ts";
-import { deleteSecretTool, getSecretTool, listSecretsTool, putSecretTool } from "../src/tools.ts";
+import { deleteSecretTool, getSecretTool, listProjectsTool, listSecretsTool, putSecretTool } from "../src/tools.ts";
 
 const allowed = parseAllowedProjects("prod,staging");
 
@@ -16,8 +16,16 @@ function memoryClient(): BwsClient {
   const store = new Map<string, SecretValue>();
   store.set(`${fixture.project}:${fixture.name}`, { ...fixture });
   let next = 2;
+  const catalog: BwsProject[] = [
+    { id: "project-prod", name: "prod" },
+    { id: "project-staging", name: "staging" },
+    { id: "project-other", name: "other" },
+  ];
 
   return {
+    async listProjects() {
+      return catalog.map((project) => ({ ...project }));
+    },
     async listSecrets(project) {
       return [...store.values()]
         .filter((secret) => secret.project === project)
@@ -184,5 +192,72 @@ describe("MCP tools", () => {
     await putSecretTool(client, { name: "APP_SESSION_SECRET", value: "prod-only", project: "prod" }, allowed);
     const staging = await getSecretTool(client, { name: "APP_SESSION_SECRET", project: "staging" }, allowed);
     expect(staging).toEqual({ ok: false, message: "Secret not found" });
+  });
+
+  it("lists only allowlisted projects", async () => {
+    const client = memoryClient();
+    const listed = await listProjectsTool(client, allowed);
+    expect(listed).toEqual({
+      ok: true,
+      data: {
+        projects: [
+          { id: "project-prod", name: "prod" },
+          { id: "project-staging", name: "staging" },
+        ],
+      },
+    });
+  });
+
+  it("lists every project when allowlist is *", async () => {
+    const client = memoryClient();
+    const listed = await listProjectsTool(client, parseAllowedProjects("*"));
+    expect(listed).toEqual({
+      ok: true,
+      data: {
+        projects: [
+          { id: "project-prod", name: "prod" },
+          { id: "project-staging", name: "staging" },
+          { id: "project-other", name: "other" },
+        ],
+      },
+    });
+  });
+
+  it("does not list projects when allowlist is empty", async () => {
+    const client = memoryClient();
+    const listed = await listProjectsTool(client, parseAllowedProjects(""));
+    expect(listed).toEqual({ ok: false, message: "BWS_ALLOWED_PROJECTS is not configured" });
+  });
+
+  it("rejects secret tools without project even when allowlist is *", async () => {
+    const client = memoryClient();
+    const star = parseAllowedProjects("*");
+    const listed = await listSecretsTool(client, "", star);
+    const got = await getSecretTool(client, { name: "APP_DATABASE_URL", project: "" }, star);
+    const put = await putSecretTool(client, { name: "APP_DATABASE_URL", value: "x", project: undefined }, star);
+    expect(listed).toEqual({ ok: false, message: "project is required" });
+    expect(got).toEqual({ ok: false, message: "project is required" });
+    expect(put).toEqual({ ok: false, message: "project is required" });
+  });
+
+  it("gets and puts in any project when allowlist is *", async () => {
+    const client = memoryClient();
+    const star = parseAllowedProjects("*");
+    const put = await putSecretTool(
+      client,
+      { name: "APP_SESSION_SECRET", value: "from-other", project: "other" },
+      star,
+    );
+    expect(put.ok).toBe(true);
+    const got = await getSecretTool(client, { name: "APP_SESSION_SECRET", project: "other" }, star);
+    expect(got).toEqual({
+      ok: true,
+      data: {
+        id: "00000000-0000-4000-8000-000000000002",
+        name: "APP_SESSION_SECRET",
+        project: "other",
+        value: "from-other",
+      },
+    });
   });
 });

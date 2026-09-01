@@ -2,7 +2,15 @@
 
 Remote MCP for Bitwarden Secrets Manager, running as a Cloudflare Worker.
 
-Tools: `bws_list_secrets`, `bws_get_secret`, `bws_put_secret` (create or update), and `bws_delete_secret`. Every tool requires `project`. The Worker never searches across projects. Allowed project names come from the `BWS_ALLOWED_PROJECTS` Worker var (comma list). Docs and tests use `prod` and `staging`.
+Tools: `bws_list_projects`, `bws_list_secrets`, `bws_get_secret`, `bws_put_secret` (create or update), and `bws_delete_secret`. Secret tools require `project` (the BWS project name, not a UUID). The Worker never searches across projects.
+
+`BWS_ALLOWED_PROJECTS` is a Worker var:
+
+- `*` — allow every project the machine token can see. `bws_list_projects` enumerates them all.
+- Comma list — only those names (for example `prod,staging`). `bws_list_projects` returns the intersection with what the token can see.
+- Empty or unset — the Worker rejects BWS calls with `BWS_ALLOWED_PROJECTS is not configured`.
+
+A `*` anywhere in the comma list means allow-all. Empty is not a synonym for `*`.
 
 Auth is OAuth 2.1 with open Dynamic Client Registration at `/register`. After Cloudflare Access login, the Worker completes the MCP grant without a second consent screen. If the request already carries a Cloudflare Access JWT (`Cf-Access-Jwt-Assertion`), the Worker verifies it itself and skips the MCP OAuth dance.
 
@@ -10,7 +18,7 @@ Auth is OAuth 2.1 with open Dynamic Client Registration at `/register`. After Cl
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/bchoor/bws-mcp)
 
-The Deploy to Cloudflare form asks for one secret: `BWS_ACCESS_TOKEN`, the Bitwarden Secrets Manager machine token. `BWS_ALLOWED_PROJECTS` is already `prod,staging`. Cookie HMAC material is created on first OAuth use and stored in `OAUTH_KV`. Team domain, audience, client id, client secret, cookie key, and email allowlist are not deploy-time fields.
+The Deploy to Cloudflare form asks for one secret: `BWS_ACCESS_TOKEN`, the Bitwarden Secrets Manager machine token. `BWS_ALLOWED_PROJECTS` defaults to `*` (every project that token can see). Cookie HMAC material is created on first OAuth use and stored in `OAUTH_KV`. Team domain, audience, client id, client secret, cookie key, and email allowlist are not deploy-time fields.
 
 On that form:
 
@@ -47,7 +55,7 @@ Access for SaaS `id_token` issuer is `https://<team>.cloudflareaccess.com/cdn-cg
 
 ## Security
 
-This Worker lists, gets, creates, updates, and deletes secrets in every project on its allowlist. An OAuth client that finishes `/authorize` for an approved human can rotate and delete those secrets. Treat that as vault rewrite access, not look-around access.
+This Worker lists, gets, creates, updates, and deletes secrets in every allowed project (`*` or the comma list). An OAuth client that finishes `/authorize` for an approved human can rotate and delete those secrets. Treat that as vault rewrite access, not look-around access.
 
 Two walls. Do not collapse them into one secret.
 
@@ -57,11 +65,11 @@ Two walls. Do not collapse them into one secret.
 
 Give the machine account Can write (and delete) on only the projects this MCP should touch. In SM a project is the folder. The Worker cannot enforce a finer ACL than that token. If the token can write a project, `bws_put_secret` and `bws_delete_secret` can change any secret in it. Skip write on the token only if you intend this deploy to fail writes.
 
-`BWS_ALLOWED_PROJECTS` is a Worker project-name gate, not a people list. Keep using it. Put only those same projects on the token. An extra name on the token and a missing name on the var, or the reverse, is how you leak or lock yourself out.
+`BWS_ALLOWED_PROJECTS` is a Worker project-name gate, not a people list. Keep using it. With `*`, the token ACL is the only project boundary. With a comma list, put only those same names on the token. An extra name on the token and a missing name on the var, or the reverse, is how you leak or lock yourself out.
 
 `ACCESS_SKIP` is for local `wrangler dev` on `localhost` or `127.0.0.1`. Never set it in production. The Deploy to Cloudflare button does not inject it, and should stay that way.
 
-Registration at `/register` is open, and `/authorize` auto-consents after Access login. An allowlisted person who clicks a hostile `/authorize` link grants that client create, rotate, and delete on every allowed project.
+Registration at `/register` is open, and `/authorize` auto-consents after Access login. An allowlisted person who clicks a hostile `/authorize` link grants that client create, rotate, and delete on every allowed project (`*` or the list).
 
 Bots that mint tokens or credentials should live in their own SM project. Give this Worker a token that can read and write only that project so a chat client cannot pull or rewrite the rest of the vault.
 
